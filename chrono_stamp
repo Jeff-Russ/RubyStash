@@ -1,0 +1,66 @@
+require 'date'
+
+class ChronoStamp
+    
+  def self.readable
+    get_stamp
+    daystamp = @@year.to_s + @@week + @@day.to_s
+    secstamp_base36 = @@secstamp.to_s(36)
+    daystamp + '_' + secstamp_base36
+  end
+  
+  def self.compact
+    get_stamp
+    (@@year.to_s + @@week + @@day.to_s + @@secstamp.to_s).to_i.to_s(36)
+  end
+  
+  def self.readable_to_datetime readable
+    year = readable[0, 2].to_i
+    week = readable[2, 2].to_i
+    day  = readable[4, 1].to_i
+    date = Date.commercial(2000 + year, week, day - 1).to_s
+    
+    time = readable.partition('_').last.to_i(36).to_s(10).to_i
+    time = base36time_to_readable time
+    date + " " + time
+  end
+  
+  def self.compact_to_datetime compact
+    base10 = compact.to_i(36).to_s(10)
+    year = base10[0, 2].to_i
+    week = base10[2, 2].to_i
+    day  = base10[4, 1].to_i
+    date = Date.commercial(2000 + year, week, day - 1).to_s
+    
+    time = base10[5..-1].to_i
+    time = base36time_to_readable time
+    date + " " + time
+  end
+
+  def self.base36time_to_readable time
+    hour = (time / 3600).floor
+    min  = ((time - hour * 3600) / 60).floor
+    sec  = time % 60
+    
+    hour = format(hour.to_s, 2)
+    min  = format(min.to_s, 2)
+    sec  = format(sec.to_s, 2)
+    hour + ":" + min + "." + sec
+  end
+  
+  def self.get_stamp
+    @@year = Time.now.year % 100
+    @@week = Time.now.strftime("%U")
+    @@day  = Time.now.strftime("%w").to_i + 1
+    hour = Time.now.strftime("%H")
+    min  = Time.now.strftime("%M")
+    sec  = Time.now.strftime("%S")
+    @@secstamp = hour.to_i * 3600 + min.to_i * 60 + sec.to_i
+  end
+  private_class_method :get_stamp
+end
+
+# temporary tests:
+puts "compact:  " + ChronoStamp.compact + " "*5+ ChronoStamp.compact_to_datetime(ChronoStamp.compact)
+puts "readable: " + ChronoStamp.readable + " " + ChronoStamp.readable_to_datetime(ChronoStamp.readable)
+
